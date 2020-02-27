@@ -3,6 +3,7 @@ module.exports = {
         'browser': true,
         'commonjs': true,
         'es6': true,
+        "node": true,
         "jest": true,
     },
     'extends': 'eslint:recommended',
@@ -28,7 +29,7 @@ module.exports = {
         ],
         'semi': [
             'error',
-            'always'
+            'never'
         ],
         'eqeqeq': 'error',
         'no-trailing-spaces': 'error',
