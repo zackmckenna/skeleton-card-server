@@ -10,6 +10,44 @@ const io = socketIo(server, {
 })
 
 let allClients = []
+let rooms = []
+
+function filterObj(keys, obj) {
+  const newObj = {}
+  Object.keys(obj).forEach(key => {
+    if (keys.includes(key)) {
+      newObj[key] = obj[key]
+    }
+  })
+  return newObj
+}
+
+const filterRoomUsersObj = (keys, obj) => {
+  let newObj = {}
+  Object.keys(obj).forEach(key => {
+    if (keys.includes(key)) {
+      console.log('key', key)
+      console.log('obj:', obj[key])
+      newObj[key] = obj[key]
+    }
+  })
+  return newObj
+}
+
+const getClientArrayByRoom = roomName => {
+  return Object.keys(io.sockets.adapter.rooms[roomName].sockets)
+}
+
+// creates client object that includes both socketId and username
+const createClientObject = clientArray => {
+  return clientArray.map(clientId => {
+    const newObj = {
+      clientId: clientId,
+      username: io.sockets.connected[clientId].username
+    }
+    return newObj
+  })
+}
 
 io.on('connection', function(socket) {
   allClients = [...allClients, socket]
@@ -17,44 +55,38 @@ io.on('connection', function(socket) {
   console.log('socket connected', socket.id)
   socket.on('action', (action) => {
     console.log(`RECEIVED TYPE: ${action.type} PAYLOAD: ${action.payload}` )
-    if(action.type === 'server/JOIN_ROOM') {
-      console.log(action.data)
-      socket.join(action.data)
-      io.sockets.in(action.data).emit('action', { type: 'skeleton-card/redux/ducks/socket/SET_AVAILABLE_ROOMS', payload: io.sockets.adapter.rooms })
-      socket.emit('action', { type: 'skeleton-card/redux/ducks/socket/SET_SOCKET_ROOM_STATE', payload: socket.rooms })
-      socket.emit('action', { type: 'skeleton-card/redux/ducks/socket/SET_AVAILABLE_ROOMS', payload: io.sockets.adapter.rooms })
-    } else if (action.type === 'server/SET_SOCKET_USER'){
-      action.payload ? socket.user = action.payload : null
-      console.log(socket.user)
+    if (action.type === 'server/SET_SOCKET_USER'){
+      if (action.payload) {
+        action.payload.id ? socket.userId = action.payload.id : null
+        action.payload.username ? socket.username = action.payload.username : null
+        action.payload.token ? socket.authenticated = true : socket.authenticated = false
+      }
+      socket.emit('action', { type: 'skeleton-card/redux/ducks/socket/SET_SOCKET_STATE', payload: { socketID: socket.id, socketRooms: socket.rooms ? socket.rooms : null, socketUser: socket.user } })
     } else if(action.type === 'server/SET_ROOM'){
-      console.log(action.payload)
       socket.join(action.payload)
       socket.emit('action', { type: 'skeleton-card/redux/ducks/socket/SET_SOCKET_ROOM_STATE', payload: socket.rooms })
-      socket.emit('action', { type: 'skeleton-card/redux/ducks/socket/SET_AVAILABLE_ROOMS', payload: io.sockets.adapter.rooms })
+      io.sockets.in(action.payload).emit('action', { type: 'skeleton-card/redux/ducks/socket/SET_AVAILABLE_ROOMS', payload: io.sockets.adapter.rooms })
+      const clients = getClientArrayByRoom(action.payload)
+      const clientArray = createClientObject(clients)
+      io.sockets.in(action.payload).emit('action', { type: 'skeleton-card/redux/ducks/socket/SET_CLIENTS_IN_ROOM', payload: clientArray })
+      console.log(clientArray)
+      // console.log(clients.map(clientId => io.sockets.socket(clientId)))
     } else if(action.type === 'server/SEND_ROOM_MESSAGE') {
-      console.log(action.payload)
       io.sockets.in(action.payload.roomName).emit('action', { type: 'skeleton-card/redux/ducks/socket/DISPERSE_ROOM_MESSAGE', payload: action.payload.message })
     } else if (action.type === 'disconnect') {
       allClients = allClients.filter(client => client.id !== socket.id)
       console.log('client disconnected')
       console.log(allClients)
+    } else {
+      console.log('no matching action')
+      socket.emit('no matching action')
     }
     // socket.emit('action', { type: 'message', data: 'good day!' })
   })
-  // console.log('user connected', socket.id)
-  // io.emit('client connected', socket.id)
-  // io.on('set room', function(room){
-  //   console.log(room)
-  //   io.join(room)
-  //   io.emit('room set')
-  // })
+  socket.on('disconnect', () => {
+    console.log('client disconnected:', socket.id)
+  })
 })
-
-// io.on('disconnect', function(socket){
-//   allClients = allClients.filter(client => client.id !== socket.id)
-//   console.log('client disconnected')
-//   console.log(allClients)
-// })
 
 
 
