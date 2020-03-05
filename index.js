@@ -67,6 +67,7 @@ io.on('connection', function(socket) {
       socket.emit('action', { type: 'skeleton-card/redux/ducks/socket/SET_SOCKET_ROOM_STATE', payload: socket.rooms })
       io.sockets.in(action.payload).emit('action', { type: 'skeleton-card/redux/ducks/socket/SET_AVAILABLE_ROOMS', payload: io.sockets.adapter.rooms })
       const clients = getClientArrayByRoom(action.payload)
+      clients.length === 1 ? socket.emit('action', { type: 'skeleton-card/redux/ducks/session/SET_HOST' }) : null
       const clientArray = createClientObject(clients)
       io.sockets.in(action.payload).emit('action', { type: 'skeleton-card/redux/ducks/socket/SET_CLIENTS_IN_ROOM', payload: clientArray })
       console.log(clientArray)

@@ -31,6 +31,7 @@
     "morgan": "^1.9.1",
     "nodemon": "^2.0.1",
     "request": "^2.88.0",
+    "roomdata": "^1.1.7-b",
     "socket.io": "^2.3.0",
     "supertest": "^4.0.2"
   },
