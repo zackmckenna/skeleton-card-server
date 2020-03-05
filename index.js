@@ -55,15 +55,16 @@ io.on('connection', function(socket) {
   socket.emit('action', { type: 'skeleton-card/redux/ducks/socket/SET_SOCKET_STATE', payload: { socketID: socket.id, socketRooms: socket.rooms ? socket.rooms : null } })
   console.log('socket connected', socket.id)
   socket.on('action', (action) => {
-    console.log(`RECEIVED TYPE: ${action.type} PAYLOAD: ${action.payload}` )
-    if (action.type === 'server/SET_SOCKET_USER'){
+    switch(action.type) {
+    case 'server/SET_SOCKET_USER':
       if (action.payload) {
         action.payload.id ? socket.userId = action.payload.id : null
         action.payload.username ? socket.username = action.payload.username : null
         action.payload.token ? socket.authenticated = true : socket.authenticated = false
       }
       socket.emit('action', { type: 'skeleton-card/redux/ducks/socket/SET_SOCKET_STATE', payload: { socketID: socket.id, socketRooms: socket.rooms ? socket.rooms : null, socketUser: socket.user } })
-    } else if(action.type === 'server/SET_ROOM'){
+      break
+    case 'server/SET_ROOM': {
       const newUserObj = {
         userId: socket.userId,
         username: socket.username,
@@ -87,12 +88,10 @@ io.on('connection', function(socket) {
       const clientArray = createClientObject(clients)
       io.sockets.in(action.payload).emit('action', { type: 'skeleton-card/redux/ducks/socket/SET_CLIENTS_IN_ROOM', payload: clientArray })
       roomdata.get(socket, 'currentGame') ? io.sockets.in(action.payload).emit('action', { type: 'skeleton-card/redux/ducks/session/DISPATCH_GAME_TO_CLIENTS', payload: roomdata.get(socket, 'currentGame') }) : null
-      // const currentRoomData = {
-      //   selectedGame: roomdata.get(socket, 'currentGame') ? roomdata.get(socket, 'currentGame') : null,
-      //   users: roomdata.get(socket, 'userArray') ? roomdata.get(socket, 'userArray') : [],
-      //   messages: roomdata.get(socket, 'messages') ? roomdata.get(socket, 'messages') : [],
-      // }
-    } else if(action.type === 'server/DISPATCH_ROOM_MESSAGE_TO_SOCKET') {
+      break
+    }
+    case 'server/DISPATCH_ROOM_MESSAGE_TO_SOCKET':
+    {
       const messageObj = {
         message: action.payload.message,
         user: socket.username
@@ -100,31 +99,33 @@ io.on('connection', function(socket) {
       roomdata.set(socket, 'messages', roomdata.get(socket, 'messages').concat(messageObj))
       console.log(roomdata.get(socket, 'messages'))
       io.sockets.in(action.payload.roomName).emit('action', { type: 'skeleton-card/redux/ducks/session/DISPERSE_ROOM_MESSAGE_TO_CLIENTS', payload: messageObj })
-    } else if (action.type === 'disconnect') {
+      break
+    }
+    case 'disconnect':
       allClients = allClients.filter(client => client.id !== socket.id)
       console.log('client disconnected')
       console.log(allClients)
-    } else if (action.type === 'server/DISPATCH_GAME_TO_SOCKET') {
+      break
+    case 'server/DISPATCH_GAME_TO_SOCKET':
       console.log(action.payload)
       roomdata.set(socket, 'currentGame', action.payload.game)
       console.log('game saved to room')
       io.sockets.in(action.payload.room).emit('action', { type: 'skeleton-card/redux/ducks/session/DISPATCH_GAME_TO_CLIENTS', payload: action.payload.game })
-    } else {
+      break
+    default:
       console.log('no matching action')
       socket.emit('no matching action')
+      break
     }
-    // socket.emit('action', { type: 'message', data: 'good day!' })
   })
   socket.on('disconnect', () => {
     console.log('client disconnected:', socket.id)
   })
 })
 
-
-
-
 const PORT = process.env.PORT || 3003
 
 server.listen(config.PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
+
