@@ -50,11 +50,41 @@ const createClientObject = clientArray => {
   })
 }
 
+const startGame = (game, users) => {
+  switch(game.gameName) {
+  case 'werewolf':
+    break
+  case 'seawitched':
+    break
+  case 'mafia':
+    break
+  case 'traitor':
+    break
+  }
+}
+
+const initializeRoom = (socket, newUserObj) => {
+  roomdata.set(socket, 'messages', [])
+  roomdata.set(socket, 'userArray', [newUserObj])
+}
+
+const emitActionToRoom = (room, actionType, payload) => {
+  io.sockets.in(room).emit('action', { type: actionType, payload: payload })
+}
+
+const buildSeawitched = (game, users) => {
+  if (users.length >= 4 && users.length <= 10) {
+    const roleDistribution = game.roleDistribution.filter(roles => roles.players === users.length)
+
+  }
+}
+
 io.on('connection', function(socket) {
-  allClients = [...allClients, socket]
   socket.emit('action', { type: 'skeleton-card/redux/ducks/socket/SET_SOCKET_STATE', payload: { socketID: socket.id, socketRooms: socket.rooms ? socket.rooms : null } })
   console.log('socket connected', socket.id)
   socket.on('action', (action) => {
+    console.log(`Action Type: ${action.type}`)
+    console.log('Payload:', action.payload)
     switch(action.type) {
     case 'server/SET_SOCKET_USER':
       if (action.payload) {
@@ -71,22 +101,21 @@ io.on('connection', function(socket) {
         socketId: socket.id
       }
       roomdata.joinRoom(socket, action.payload)
-      socket.emit('action', { type: 'skeleton-card/redux/ducks/socket/SET_SOCKET_ROOM_STATE', payload: socket.rooms })
-      io.sockets.in(action.payload).emit('action', { type: 'skeleton-card/redux/ducks/socket/SET_AVAILABLE_ROOMS', payload: io.sockets.adapter.rooms })
+      emitActionToRoom(action.payload, 'skeleton-card/redux/ducks/socket/SET_AVAILABLE_ROOMS', io.sockets.adapter.rooms)
+      // io.sockets.in(action.payload).emit('action', { type: 'skeleton-card/redux/ducks/socket/SET_AVAILABLE_ROOMS', payload: io.sockets.adapter.rooms })
       const clients = getClientArrayByRoom(action.payload)
       if (!roomdata.get(socket, 'userArray')) {
-        socket.emit('action', { type: 'skeleton-card/redux/ducks/session/SET_HOST' })
-        roomdata.set(socket, 'messages', [])
-        roomdata.set(socket, 'userArray', [newUserObj])
-      }
-      if (roomdata.get(socket, 'userArray').length > 1) {
+        console.log('creating host and making a room...')
+        emitActionToRoom(action.payload, 'skeleton-card/redux/ducks/session/SET_HOST')
+        // socket.emit('action', { type: 'skeleton-card/redux/ducks/session/SET_HOST' })
+        initializeRoom(socket, newUserObj)
+        console.log('done')
+      } else {
+        console.log('Adding new user to room...')
         roomdata.set(socket, 'userArray', roomdata.get(socket, 'userArray').concat(newUserObj))
       }
-      console.log(roomdata.get(socket,'userArray'))
       socket.emit('action', { type: 'skeleton-card/redux/ducks/session/LOAD_EXISTING_MESSAGES', payload: roomdata.get(socket, 'messages') })
-      // io.sockets.in(action.payload).emit('action', { type: 'skeleton-card/redux/ducks/session/DISPERSE_ROOM_MESSAGE_TO_CLIENTS', payload: roomdata.get(socket, 'currentGame') })
-      const clientArray = createClientObject(clients)
-      io.sockets.in(action.payload).emit('action', { type: 'skeleton-card/redux/ducks/socket/SET_CLIENTS_IN_ROOM', payload: clientArray })
+      emitActionToRoom(action.payload, 'skeleton-card/redux/ducks/session/SET_CLIENTS_IN_ROOM', roomdata.get(socket, 'userArray'))
       roomdata.get(socket, 'currentGame') ? io.sockets.in(action.payload).emit('action', { type: 'skeleton-card/redux/ducks/session/DISPATCH_GAME_TO_CLIENTS', payload: roomdata.get(socket, 'currentGame') }) : null
       break
     }
@@ -102,14 +131,10 @@ io.on('connection', function(socket) {
       break
     }
     case 'disconnect':
-      allClients = allClients.filter(client => client.id !== socket.id)
       console.log('client disconnected')
-      console.log(allClients)
       break
     case 'server/DISPATCH_GAME_TO_SOCKET':
-      console.log(action.payload)
       roomdata.set(socket, 'currentGame', action.payload.game)
-      console.log('game saved to room')
       io.sockets.in(action.payload.room).emit('action', { type: 'skeleton-card/redux/ducks/session/DISPATCH_GAME_TO_CLIENTS', payload: action.payload.game })
       break
     default:
