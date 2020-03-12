@@ -84,6 +84,7 @@ const DISPERSE_ROOM_MESSAGE_TO_CLIENTS = 'skeleton-card/redux/ducks/session/DISP
 const LEAVE_ROOM_SUCCESS = 'skeleton-card/redux/ducks/socket/LEAVE_ROOM_SUCCESS'
 const TRIGGER_REDUX_ACTION = 'skeleton-card/redux/ducks/socket/TRIGGER_REDUX_ACTION'
 const REMOVE_CLIENT_FROM_ROOM = 'skeleton-card/redux/ducks/session/REMOVE_CLIENT_FROM_ROOM'
+const SET_GAME_ROLES = 'skeleton-card/redux/ducks/session/SET_GAME_ROLES'
 
 // server actions
 const SET_ROOM = 'server/SET_ROOM'
@@ -148,25 +149,38 @@ io.on('connection', function(socket) {
     {
       const selectedGame = action.payload.selectedGame
       const clients = action.payload.clients
-      const roleDistribution = selectedGame.roleDistribution.filter(roles => roles.players === clients.length)
+      const roleDistribution = selectedGame.roleDistribution.filter(roles => roles.players === clients.length)[0]
       console.log('Time to start game!!!!')
       console.log('the game is', selectedGame.gameName)
+      console.log('room:', action.payload.room)
       switch(selectedGame.gameName){
       case 'seawitched':
-        console.log('roles:', roleDistribution)
-        console.log('clients:', clients)
-        console.log(roleDistribution.map(role => {
-          if (Object.getOwnPropertyNames(role) !== 'players'){
-            console.log('role name:', Object.keys(role))
-            console.log('role count', Object.values(role))
+      {
+        const roles = shuffle(roleDistribution.deck)
+        const alignments = shuffle(roleDistribution.alignments)
+        const updatedClients = clients.map((client, index) => {
+          const newClientObj = {
+            userId: client.userId,
+            username: client.username,
+            socketId: client.socketId,
+            role: roles[index],
+            alignment: 'good'
           }
-        }))
+          newClientObj.role === 'captain' ? newClientObj.alignment = alignments[0] : null
+          newClientObj.role === 'mutineer' ? newClientObj.alignment = 'evil' : null
+          return newClientObj
+        })
+        emitActionToRoom(action.payload.room, SET_GAME_ROLES, updatedClients)
+        console.log(updatedClients)
         break
+      }
       case 'traitor':
         break
       case 'werewolf':
         break
       case 'mafia':
+        break
+      case 'spyfall':
         break
       default:
         console.log('game not found')
