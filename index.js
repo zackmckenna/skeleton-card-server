@@ -149,13 +149,13 @@ io.on('connection', function(socket) {
     {
       const selectedGame = action.payload.selectedGame
       const clients = action.payload.clients
-      const roleDistribution = selectedGame.roleDistribution.filter(roles => roles.players === clients.length)[0]
       console.log('Time to start game!!!!')
       console.log('the game is', selectedGame.gameName)
       console.log('room:', action.payload.room)
       switch(selectedGame.gameName){
       case 'seawitched':
       {
+        const roleDistribution = selectedGame.roleDistribution.filter(roles => roles.players === clients.length)[0]
         const roles = shuffle(roleDistribution.deck)
         const alignments = shuffle(roleDistribution.alignments)
         const updatedClients = clients.map((client, index) => {
@@ -177,6 +177,7 @@ io.on('connection', function(socket) {
       }
       case 'traitor':
       {
+        const roleDistribution = selectedGame.roleDistribution.filter(roles => roles.players === clients.length)[0]
         const roles = shuffle(roleDistribution.deck)
         const alignments = shuffle(roleDistribution.alignments)
         const updatedClients = clients.map((client, index) => {
@@ -201,7 +202,25 @@ io.on('connection', function(socket) {
       case 'mafia':
         break
       case 'spyfall':
+      {
+        const shuffledLocations = shuffle(selectedGame.locations)
+        const shuffledClients = shuffle(clients)
+        const updatedClients = shuffledClients.map(client => {
+          const newClientObj = {
+            userId: client.userId,
+            username: client.username,
+            socketId: client.socketId,
+            isSpy: false,
+            location: shuffledLocations[0]
+          }
+          return newClientObj
+        })
+        updatedClients[0].isSpy = true
+        updatedClients.length >= 9 ? shuffledClients[1].isSpy = true : null
+        emitActionToRoom(action.payload.room, SET_GAME_ROLES, updatedClients)
+        console.log(updatedClients)
         break
+      }
       default:
         console.log('game not found')
       }
