@@ -168,6 +168,7 @@ io.on('connection', function(socket) {
           }
           newClientObj.role === 'captain' ? newClientObj.alignment = alignments[0] : null
           newClientObj.role === 'mutineer' ? newClientObj.alignment = 'evil' : null
+          newClientObj.role === 'captain' && newClientObj.alignment === 'evil' ? newClientObj.role = 'seawitch' : null
           return newClientObj
         })
         emitActionToRoom(action.payload.room, SET_GAME_ROLES, updatedClients)
@@ -175,7 +176,26 @@ io.on('connection', function(socket) {
         break
       }
       case 'traitor':
+      {
+        const roles = shuffle(roleDistribution.deck)
+        const alignments = shuffle(roleDistribution.alignments)
+        const updatedClients = clients.map((client, index) => {
+          const newClientObj = {
+            userId: client.userId,
+            username: client.username,
+            socketId: client.socketId,
+            role: roles[index],
+            alignment: 'good'
+          }
+          newClientObj.role === 'wizard' ? newClientObj.alignment = alignments[0] : null
+          newClientObj.role === 'traitor' ? newClientObj.alignment = 'evil' : null
+          newClientObj.role === 'wizard' && newClientObj.alignment === 'evil' ? newClientObj.role = 'evil wizard' : null
+          return newClientObj
+        })
+        emitActionToRoom(action.payload.room, SET_GAME_ROLES, updatedClients)
+        console.log(updatedClients)
         break
+      }
       case 'werewolf':
         break
       case 'mafia':
