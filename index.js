@@ -86,6 +86,7 @@ const TRIGGER_REDUX_ACTION = 'skeleton-card/redux/ducks/socket/TRIGGER_REDUX_ACT
 const REMOVE_CLIENT_FROM_ROOM = 'skeleton-card/redux/ducks/session/REMOVE_CLIENT_FROM_ROOM'
 const SET_GAME_ROLES = 'skeleton-card/redux/ducks/session/SET_GAME_ROLES'
 const DISPATCH_CLEAR_CURRENT_GAME_TO_CLIENTS = 'skeleton-card/redux/ducks/session/DISPATCH_CLEAR_CURRENT_GAME_TO_CLIENTS'
+const RETURN_TO_LOBBY = 'skeleton-card/redux/ducks/session/RETURN_TO_LOBBY'
 // server actions
 const SET_ROOM = 'server/SET_ROOM'
 const DISPATCH_ROOM_MESSAGE_TO_SOCKET = 'server/DISPATCH_ROOM_MESSAGE_TO_SOCKET'
@@ -93,6 +94,7 @@ const DISPATCH_GAME_TO_SOCKET = 'server/DISPATCH_GAME_TO_SOCKET'
 const SET_SOCKET_USER = 'server/SET_SOCKET_USER'
 const DISPATCH_START_GAME_TO_SOCKET = 'server/DISPATCH_START_GAME_TO_SOCKET'
 const DISPATCH_LEAVE_ROOM_TO_SOCKET = 'server/DISPATCH_LEAVE_ROOM_TO_SOCKET'
+const DISPATCH_RETURN_TO_LOBBY_TO_SOCKET = 'server/DISPATCH_RETURN_TO_LOBBY_TO_SOCKET'
 
 io.on('connection', function(socket) {
   socket.emit('action', { type: 'skeleton-card/redux/ducks/socket/SET_SOCKET_STATE', payload: { socketID: socket.id, socketRooms: socket.rooms ? socket.rooms : null } })
@@ -132,7 +134,9 @@ io.on('connection', function(socket) {
       emitActionToRoom(action.payload.roomName, DISPERSE_ROOM_MESSAGE_TO_CLIENTS, messageObj)
       break
     }
-    case DISPATCH_CLEAR_CURRENT_GAME_TO_CLIENTS:
+    case DISPATCH_RETURN_TO_LOBBY_TO_SOCKET:
+      console.log('returning clients to lobby')
+      emitActionToRoom(action.payload, RETURN_TO_LOBBY, socket.id)
       break
     case DISPATCH_LEAVE_ROOM_TO_SOCKET:
       emitActionToRoom(action.payload, REMOVE_CLIENT_FROM_ROOM, socket.id)
